@@ -105,3 +105,11 @@ void print_stack(struct stack *s) {
   }
 
 }
+
+//applies transformation t to stop of stack
+void apply_to_stack(struct stack *s, struct matrix *t) {
+  struct matrix *top = peek(s);
+  struct matrix *new_top = matrix_mult(top, t);
+  copy_matrix(new_top, top);
+}
+

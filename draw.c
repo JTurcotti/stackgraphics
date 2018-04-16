@@ -381,7 +381,7 @@ void add_curve(struct matrix *points,
 void add_box(struct matrix *points, double x0, double y0, double z0, double x_depth, double y_depth, double z_depth) {
   
   double vals[3] = {x0, y0, z0};
-  double depths[3] = {x_depth, y_depth, z_depth};
+  double depths[3] = {x_depth, -1 * y_depth, -1 * z_depth};
   int i, j, a, b, c;
   for (i = 0; i < 3; i++) {
     for (a = 0; a < 2; a++) {

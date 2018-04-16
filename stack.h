@@ -17,4 +17,5 @@ void pop(struct stack *s);
 void free_stack( struct stack *);
 void print_stack( struct stack *);
 
+void apply_to_stack(struct stack *s, struct matrix *transform);
 #endif

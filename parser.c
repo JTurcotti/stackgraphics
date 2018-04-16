@@ -25,7 +25,7 @@ The file follows the following format:
          line: add a line to the edge matrix - 
 	    takes 6 arguemnts (x_0, y_0, z_0) 
 	                      (x_1, y_1, z_1)
-	 polygon: add a triangle to the trigs matrix -
+	 polygon: add a triangle to the polygons matrix -
 	    takes 9 arguments (x_0, y_0, z_0) 
 	                      (x_1, y_1, z_1) 
 			      (x_2, y_2, z_2) 
@@ -79,7 +79,7 @@ void parse_file ( char * input) {
   int ndisplay = 0;
 
   struct matrix *edges = new_matrix(1, 1);
-  struct matrix *trigs = new_matrix(1, 1);
+  struct matrix *polygons = new_matrix(1, 1);
   struct matrix *transform = new_matrix(1, 1);
 
   struct stack *stack = new_stack();
@@ -126,60 +126,75 @@ void parse_file ( char * input) {
       } else {
 	add_edge(edges, args[0], args[1], args[2], args[3], args[4], args[5]);
       }
-      print_matrix("drawing line with transform", peek(stack));
       draw_lines(matrix_mult(peek(stack), edges), s, c);
       free(args);
     } else if (!strcmp(line, "polygon")) {
       double *args = malloc(9 * sizeof(double));
-      
+      polygons = new_matrix(4, 3);
+
       if (!fgets(argline, 255, f) ||
 	  ((nargs = sscanf(argline, "%lf %lf %lf %lf %lf %lf %lf %lf %lf",
 			   args, args+1, args+2, args+3, args+4, args+5,
 			   args+6, args+7, args+8)) != 9)) {
 	printf("Error: 'polygon' requires 9 arguments of type double, found %d\n", nargs);
       } else {
-	add_polygon(trigs, args[0], args[1], args[2], args[3], args[4],
+	add_polygon(polygons, args[0], args[1], args[2], args[3], args[4],
 		    args[5], args[6], args[7], args[8]);
       }
+      draw_polygons(matrix_mult(peek(stack), polygons), s, c);
+      free(args);
     } else if (!strcmp(line, "box")) {
       double *args = malloc(6 * sizeof(double));
-      
+      polygons = new_matrix(4, 36);
+
       if (!fgets(argline, 255, f) ||
 	  ((nargs = sscanf(argline, "%lf %lf %lf %lf %lf %lf", args, args+1, args+2, args+3, args+4, args+5)) != 6)) {
 	printf("Error: 'box' requires 6 arguments of type double, found %d\n", nargs);
       } else {
-	add_box(trigs, args[0], args[1], args[2], args[3], args[4], args[5]);
+	add_box(polygons, args[0], args[1], args[2], args[3], args[4], args[5]);
       }
+      draw_polygons(matrix_mult(peek(stack), polygons), s, c);
+      free(args);
     } else if (!strcmp(line, "sphere")) {
       double *args = malloc(4 * sizeof(double));
-      
+      polygons = new_matrix(4, 128);
+
       if (!fgets(argline, 255, f) ||
 	  ((nargs = sscanf(argline, "%lf %lf %lf %lf", args, args+1, args+2, args+3)) != 4)) {
 	printf("Error: 'sphere' requires 4 arguments of type double, found %d\n", nargs);
       } else {
-	add_sphere(trigs, args[0], args[1], args[2], args[3], STEP_SIZE * 5);
+	add_sphere(polygons, args[0], args[1], args[2], args[3], STEP_SIZE * 5);
       }
+      draw_polygons(matrix_mult(peek(stack), polygons), s, c);
+      free(args);
     } else if (!strcmp(line, "torus")) {
       double *args = malloc(5 * sizeof(double));
+      polygons = new_matrix(4, 128);
       
       if (!fgets(argline, 255, f) ||
 	  ((nargs = sscanf(argline, "%lf %lf %lf %lf %lf", args, args+1, args+2, args+3, args+4)) != 5)) {
 	printf("Error: 'torus' requires 5 arguments of type double, found %d\n", nargs);
       } else {
-	add_torus(trigs, args[0], args[1], args[2], args[3], args[4], STEP_SIZE * 5);
+	add_torus(polygons, args[0], args[1], args[2], args[3], args[4], STEP_SIZE * 5);
       }
+      draw_polygons(matrix_mult(peek(stack), polygons), s, c);
+      free(args);
     } else if (!strcmp(line, "circle")) {
       double *args = malloc(4 * sizeof(double));
-      
+      edges = new_matrix(4, 64);
+
       if (!fgets(argline, 255, f) ||
 	  ((nargs = sscanf(argline, "%lf %lf %lf %lf", args, args+1, args+2, args+3)) != 4)) {
 	printf("Error: 'circle' requires 4 arguments of type double, found %d\n", nargs);
       } else {
 	add_circle(edges, args[0], args[1], args[2], args[3], STEP_SIZE);
       }
+      draw_lines(matrix_mult(peek(stack), edges), s, c);
+      free(args);
     } else if (!strcmp(line, "bezier")) {
       double *args = malloc(8 * sizeof(double));
-      
+      edges = new_matrix(4, 64);
+
       if (!fgets(argline, 255, f) ||
 	  ((nargs = sscanf(argline, "%lf %lf %lf %lf %lf %lf %lf %lf",
 			   args, args+1, args+2, args+3, args+4, args+5,
@@ -189,9 +204,12 @@ void parse_file ( char * input) {
 	add_curve(edges, args[0], args[1], args[2], args[3], args[4],
 		  args[5], args[6], args[7], STEP_SIZE, BEZIER);
       }
+      draw_lines(matrix_mult(peek(stack), edges), s, c);
+      free(args);
     } else if (!strcmp(line, "hermite")) {
       double *args = malloc(8 * sizeof(double));
-      
+      edges = new_matrix(4, 64);
+
       if (!fgets(argline, 255, f) ||
 	  ((nargs = sscanf(argline, "%lf %lf %lf %lf %lf %lf %lf %lf",
 			   args, args+1, args+2, args+3, args+4, args+5,
@@ -201,6 +219,8 @@ void parse_file ( char * input) {
 	add_curve(edges, args[0], args[1], args[2], args[3], args[4],
 		  args[5], args[6], args[7], STEP_SIZE, HERMITE);
       }      
+      draw_lines(matrix_mult(peek(stack), edges), s, c);
+      free(args);
     } else if (!strcmp(line, "push")) {
       push(stack);
     } else if (!strcmp(line, "pop")) {
@@ -212,7 +232,7 @@ void parse_file ( char * input) {
 	  ((nargs = sscanf(argline, "%lf %lf %lf", args, args+1, args+2)) != 3)) {
 	printf("Error: 'scale' requires 3 arguments of type double, found %d\n", nargs);
       } else {
-	transform = matrix_mult(make_scale(args[0], args[1], args[2]), transform);
+	apply_to_stack(stack, make_scale(args[0], args[1], args[2]));
       }
       
       free(args);
@@ -224,12 +244,7 @@ void parse_file ( char * input) {
 	  ((nargs = sscanf(argline, "%lf %lf %lf", args, args+1, args+2)) != 3)) {
 	printf("Error: 'translate' requires 3 arguments of type double, found %d\n", nargs);
       } else {
-	struct matrix *top = peek(stack);
-	print_matrix("translation matrix", make_translate(args[0], args[1], args[2]));
-	struct matrix *new_top = matrix_mult(top, make_translate(args[0], args[1], args[2]));
-	print_matrix("new top", new_top);
-	copy_matrix(new_top, top);
-	print_matrix("new top of stack", top);
+	apply_to_stack(stack, make_translate(args[0], args[1], args[2]));
       }
 
       free(args);
@@ -240,11 +255,11 @@ void parse_file ( char * input) {
 	printf("Error: 'rotate' requires both an axis and an angle\n");
       } else {
 	if (*axis == 'x' || *axis == 'X') {
-	  transform = matrix_mult(make_rotX(*theta), transform);
+	  apply_to_stack(stack, make_rotX(*theta));
 	} else if (*axis == 'y' || *axis == 'Y') {
-	  transform = matrix_mult(make_rotY(*theta), transform);
+	  apply_to_stack(stack, make_rotY(*theta));
 	} else if (*axis == 'z' || *axis == 'Z') {
-	  transform = matrix_mult(make_rotZ(*theta), transform);
+	  apply_to_stack(stack, make_rotZ(*theta));
 	} else {
 	  printf("Error: %c is not a valid axis\n", *axis);
 	}
