@@ -4,6 +4,7 @@
 #include <math.h>
 #include <float.h>
 
+#include "stack.h"
 #include "ml6.h"
 #include "display.h"
 #include "draw.h"
@@ -74,15 +75,14 @@ The file follows the following format:
 
 ====================*/
 void parse_file ( char * input) {
-  printf("apple\n");
-  struct matrix *transform = new_matrix(4, 4);
-  ident(transform);
-
   int nargs = 0;
   int ndisplay = 0;
 
-  struct matrix *edges = new_matrix(4, 50);
-  struct matrix *trigs = new_matrix(4, 75);
+  struct matrix *edges = new_matrix(1, 1);
+  struct matrix *trigs = new_matrix(1, 1);
+  struct matrix *transform = new_matrix(1, 1);
+
+  struct stack *stack = new_stack();
 
   screen s;
 
@@ -117,6 +117,7 @@ void parse_file ( char * input) {
       break;
     } else if (!strcmp(line, "line")) {
       double *args = malloc(6 * sizeof(double));
+      edges = new_matrix(4, 1);
       
       if (!fgets(argline, 255, f) ||
 	  ((nargs = sscanf(argline, "%lf %lf %lf %lf %lf %lf",
@@ -125,6 +126,8 @@ void parse_file ( char * input) {
       } else {
 	add_edge(edges, args[0], args[1], args[2], args[3], args[4], args[5]);
       }
+      print_matrix("drawing line with transform", peek(stack));
+      draw_lines(matrix_mult(peek(stack), edges), s, c);
       free(args);
     } else if (!strcmp(line, "polygon")) {
       double *args = malloc(9 * sizeof(double));
@@ -198,8 +201,10 @@ void parse_file ( char * input) {
 	add_curve(edges, args[0], args[1], args[2], args[3], args[4],
 		  args[5], args[6], args[7], STEP_SIZE, HERMITE);
       }      
-    } else if (!strcmp(line, "ident")) {
-      ident(transform);
+    } else if (!strcmp(line, "push")) {
+      push(stack);
+    } else if (!strcmp(line, "pop")) {
+      pop(stack);
     } else if (!strcmp(line, "scale")) {
       double *args = malloc(3 * sizeof(double));
       
@@ -219,8 +224,12 @@ void parse_file ( char * input) {
 	  ((nargs = sscanf(argline, "%lf %lf %lf", args, args+1, args+2)) != 3)) {
 	printf("Error: 'translate' requires 3 arguments of type double, found %d\n", nargs);
       } else {
-	transform = matrix_mult(make_translate(args[0], args[1], args[2]), transform);	
-
+	struct matrix *top = peek(stack);
+	print_matrix("translation matrix", make_translate(args[0], args[1], args[2]));
+	struct matrix *new_top = matrix_mult(top, make_translate(args[0], args[1], args[2]));
+	print_matrix("new top", new_top);
+	copy_matrix(new_top, top);
+	print_matrix("new top of stack", top);
       }
 
       free(args);
@@ -254,30 +263,12 @@ void parse_file ( char * input) {
       } else {
 	back = get_color(rgb[0], rgb[1], rgb[2]);
       }
-    } else if (!strcmp(line, "apply")) {
-      edges = matrix_mult(transform, edges);
-      trigs = matrix_mult(transform, trigs);
-    } else if (!strcmp(line, "clear")) {
-      edges = new_matrix(4, 50);
-      trigs = new_matrix(4, 75);
-    } else if (!strcmp(line, "draw")) {
-      draw_lines(edges, s, c);
-      draw_polygons(trigs, s, c);
     } else if (!strcmp(line, "display")) {
-      clear_screen(s, back);
-      draw_lines(edges, s, c);
-      draw_polygons(trigs, s, c);
-
       char *filename = malloc(16);
       sprintf(filename, "display-%d.png", ndisplay++);
       save_extension(s, filename);
       free(filename);
     } else if (!strcmp(line, "save")) {
-      clear_screen(s, back);
-      
-      draw_lines(edges, s, c);
-      draw_polygons(trigs, s, c);
-      
       char *filename = malloc(32);
       if (!fgets(argline, 255, f) || (sscanf(argline, "%s", filename) == 0)) {
 	printf("Error: 'save' requires a filename, none given\n");

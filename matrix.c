@@ -168,12 +168,17 @@ Returns:
 copy matrix a to matrix b
 */
 void copy_matrix(struct matrix *a, struct matrix *b) {
+  assert(a->lastcol < b->cols);
 
   int r, c;
 
   for (r=0; r < a->rows; r++) 
-    for (c=0; c < a->lastcol; c++)  
+    for (c=0; c <= a->lastcol; c++)  
       b->m[r][c] = a->m[r][c];  
+
+  b->lastcol = a->lastcol;
+
+  
 }
 
 struct matrix *make_translate(double x, double y, double z) {
